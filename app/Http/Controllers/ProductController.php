@@ -7,7 +7,7 @@ use App\Product;
 use Illuminate\Support\Facades\Storage;
 
 class ProductController extends Controller
-{
+{ 
   // Controller function for fetching all products
   public function index()
   {
@@ -50,7 +50,7 @@ class ProductController extends Controller
   {
     $oneProduct = Product::where('id', $id)->first();
     return ['product' => $oneProduct];
-  }
+  } 
     
 
   public function edit($id)
