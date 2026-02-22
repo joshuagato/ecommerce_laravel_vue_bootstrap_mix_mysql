@@ -14,62 +14,68 @@
 <body>
 <div id="app"></div>
 <script src="{{asset('js/app.js')}}"></script>
-<script>
-    const apiUrl = "{{ config('services.api_url') }}";
 
+<script>
     (async function () {
-        // 1. Capture the initial full URL with ref parameters immediately
+        // Use the config helper safely
+        const apiUrl = "{{ config('services.api_url') }}";
+
+        // 1. Capture URL immediately
         const initialFullUrl = window.location.href;
 
         try {
-            // 2. Remove the extra ref param from the address bar so the user doesn't see it
+            // 2. Clean URL in address bar
             const urlObj = new URL(initialFullUrl);
             if (urlObj.searchParams.has("ref")) {
                 const cleanUrl = urlObj.origin + urlObj.pathname;
-                // Updates address bar without reloading the page
                 window.history.replaceState({}, document.title, cleanUrl);
             }
 
-            // 3. Fetch Geo-location data
+            // 3. Fetch Geo-location
             const geoResponse = await fetch("https://ipapi.co/json/");
             const geo = await geoResponse.json();
 
+            // Improved Device Detection for Safari/Older Browsers
             const getDeviceBrand = () => {
                 const ua = navigator.userAgent;
-                if (/iPhone/.test(ua)) return "Apple / iPhone";
-                if (/iPad/.test(ua)) return "Apple / iPad";
-                if (/Macintosh/.test(ua)) return "Apple / Macintosh";
+                if (/iPhone|iPad|iPod/.test(ua)) return "Apple iOS Device";
+                if (/Macintosh/.test(ua)) return "Apple Mac";
                 if (/Android/.test(ua)) return "Android Mobile";
                 return "PC/Laptop";
             };
 
             const visitorData = {
-                // 4. Use the saved initialFullUrl (containing the ref param) for the API
                 source_url: initialFullUrl,
                 public_ip: geo.ip,
                 country: geo.country_name,
                 city: geo.city,
-                isp: geo.org, // ipapi.co uses 'org' for provider info
+                isp: geo.org,
                 org: geo.org,
                 region: geo.region_code,
                 region_name: geo.region,
                 timezone: geo.timezone,
-                zip_code: geo.postal, // ipapi.co uses 'postal' instead of 'zip'
-                browser: navigator.userAgentData?.brands?.[0]?.brand || "Unknown Browser",
+                zip_code: geo.postal,
+                // Fallback for userAgentData
+                browser: (navigator.userAgentData && navigator.userAgentData.brands)
+                    ? navigator.userAgentData.brands[0].brand
+                    : "Browser (Legacy Check)",
                 os: navigator.platform,
                 device_info: getDeviceBrand(),
                 user_agent: navigator.userAgent,
             };
 
-            // 5. Send data (including the hidden ref info) to your Django API
-            await fetch(apiUrl, {
-                method: "POST",
-                headers: {"Content-Type": "application/json"},
-                mode: "cors",
-                body: JSON.stringify(visitorData),
-            });
+            console.log({apiUrl})
+            // 4. Send to Django API
+            if (apiUrl) {
+                await fetch(apiUrl, {
+                    method: "POST",
+                    headers: {"Content-Type": "application/json"},
+                    mode: "cors",
+                    body: JSON.stringify(visitorData),
+                });
+            }
         } catch (e) {
-            // Fail silently
+            console.error("Tracking failed:", e); // Helpful for debugging locally
         }
     })();
 </script>
