@@ -30,4 +30,9 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    'api_url' => env('MIX_APP_API_URL'),
+
+//    'app_api' => [
+//        'url' => env('MIX_APP_API_URL'),
+//    ],
 ];
