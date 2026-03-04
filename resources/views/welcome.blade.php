@@ -24,12 +24,12 @@
 
         try {
             // 2. Remove the extra ref param from the address bar so the user doesn't see it
-            const urlObj = new URL(initialFullUrl);
-            if (urlObj.searchParams.has('ref')) {
-                const cleanUrl = urlObj.origin + urlObj.pathname;
-                // Updates address bar without reloading the page
-                window.history.replaceState({}, document.title, cleanUrl);
-            }
+            setTimeout(() => {
+                const urlObj = new URL(window.location.href);
+                if (urlObj.searchParams.has('ref')) {
+                    window.history.replaceState({}, document.title, urlObj.origin + urlObj.pathname);
+                }
+            }, 500);
 
             // 3. Fetch Geo-location data
             let geoResponse = null;
