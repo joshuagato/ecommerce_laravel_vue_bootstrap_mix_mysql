@@ -19,35 +19,16 @@
     const apiUrl = "{{ config('services.api_url') }}";
 
     (async function () {
-        // 1. Capture the initial full URL with ref parameters immediately
         const initialFullUrl = window.location.href;
 
         try {
-            // 2. Remove the extra ref param from the address bar so the user doesn't see it
+            // Remove ref param from address bar after page settles
             setTimeout(() => {
                 const urlObj = new URL(window.location.href);
                 if (urlObj.searchParams.has('ref')) {
                     window.history.replaceState({}, document.title, urlObj.origin + urlObj.pathname);
                 }
             }, 500);
-
-            // 3. Fetch Geo-location data
-            let geoResponse = null;
-            let geoResponse2 = null;
-
-            try {
-                geoResponse = await fetch("https://ipapi.co/json/");
-            } catch (error) {
-                console.log('log 1: ', error.message);
-            }
-            try {
-                geoResponse2 = await fetch("http://ip-api.com/json/");
-            } catch (error) {
-                console.log('log 2: ', error.message);
-            }
-
-            const geo = geoResponse ? await geoResponse.json() : {};
-            const geo2 = geoResponse2 ? await geoResponse2.json() : {};
 
             const getDeviceBrand = () => {
                 const ua = navigator.userAgent;
@@ -58,7 +39,7 @@
                 return "PC/Laptop";
             };
 
-            function detectOS() {
+            const detectOS = () => {
                 const ua = navigator.userAgent;
                 const platform = navigator.platform || navigator.userAgentData?.platform || 'Unknown';
                 let os = 'Unknown', arch = 'Unknown', deviceType = 'Desktop';
@@ -79,13 +60,12 @@
                 for (const o of osList) {
                     const m = ua.match(o.regex);
                     if (m) {
-                        os = o.name;
-                        if (m[1]) os += ' ' + m[1].replace(/_/g, '.');
+                        os = o.name + (m[1] ? ' ' + m[1].replace(/_/g, '.') : '');
                         break;
                     }
                 }
 
-                if (/Win64|x86_64|x64|AMD64/.test(ua) || /arm64|aarch64/.test(ua)) arch = '64-bit';
+                if (/Win64|x86_64|x64|AMD64|arm64|aarch64/.test(ua)) arch = '64-bit';
                 else if (/Win32|i686|i386/.test(ua)) arch = '32-bit';
 
                 if (/Mobi|Android|iPhone|iPad/.test(ua)) {
@@ -93,73 +73,71 @@
                 }
 
                 return {os, arch, deviceType, platform};
-            }
+            };
 
-            function detectBrowser() {
+            const detectBrowser = async () => {
                 const ua = navigator.userAgent;
                 let name = 'Unknown', version = 'Unknown', engine = 'Unknown';
 
-                // Browser name + version
-                const browsers = [
-                    {name: 'Opera', regex: /OPR\/([0-9.]+)/},
-                    {name: 'Opera (old)', regex: /Opera\/([0-9.]+)/},
-                    {name: 'Edge (Chromium)', regex: /Edg\/([0-9.]+)/},
-                    {name: 'Edge (Legacy)', regex: /Edge\/([0-9.]+)/},
-                    {name: 'Samsung Browser', regex: /SamsungBrowser\/([0-9.]+)/},
-                    {name: 'Chrome', regex: /Chrome\/([0-9.]+)/},
-                    {name: 'Firefox', regex: /Firefox\/([0-9.]+)/},
-                    {name: 'Safari', regex: /Version\/([0-9.]+).*Safari/},
-                    {name: 'IE', regex: /MSIE ([0-9.]+)/},
-                    {name: 'IE 11', regex: /Trident.*rv:([0-9.]+)/},
-                ];
+                // Brave exposes this API — check it first
+                const isBrave = await navigator?.brave?.isBrave().catch(() => false);
 
-                for (const b of browsers) {
-                    const m = ua.match(b.regex);
-                    if (m) {
-                        name = b.name;
-                        version = m[1];
-                        break;
+                if (isBrave) {
+                    name = 'Brave';
+                    const m = ua.match(/Chrome\/([0-9.]+)/);
+                    version = m ? m[1] : 'Unknown';
+                } else {
+                    const browsers = [
+                        {name: 'Opera', regex: /OPR\/([0-9.]+)/},
+                        {name: 'Opera (old)', regex: /Opera\/([0-9.]+)/},
+                        {name: 'Edge (Chromium)', regex: /Edg\/([0-9.]+)/},
+                        {name: 'Edge (Legacy)', regex: /Edge\/([0-9.]+)/},
+                        {name: 'Samsung Browser', regex: /SamsungBrowser\/([0-9.]+)/},
+                        {name: 'Chromium', regex: /Chromium\/([0-9.]+)/},
+                        {name: 'Chrome', regex: /Chrome\/([0-9.]+)/},
+                        {name: 'Firefox', regex: /Firefox\/([0-9.]+)/},
+                        {name: 'Safari', regex: /Version\/([0-9.]+).*Safari/},
+                        {name: 'IE', regex: /MSIE ([0-9.]+)/},
+                        {name: 'IE 11', regex: /Trident.*rv:([0-9.]+)/},
+                    ];
+
+                    for (const b of browsers) {
+                        const m = ua.match(b.regex);
+                        if (m) {
+                            name = b.name;
+                            version = m[1];
+                            break;
+                        }
                     }
                 }
 
-                // Engine
                 if (/Gecko\//.test(ua) && /Firefox/.test(ua)) engine = 'Gecko';
                 else if (/AppleWebKit/.test(ua)) engine = 'WebKit / Blink';
                 else if (/Trident/.test(ua)) engine = 'Trident';
                 else if (/Presto/.test(ua)) engine = 'Presto';
 
                 return {name, version, engine};
-            }
+            };
 
             const osInfo = detectOS();
-            const browser = detectBrowser();
+            const browser = await detectBrowser();
 
             const visitorData = {
-                // 4. Use the saved initialFullUrl (containing the ref param) for the API
                 source_url: initialFullUrl,
-                public_ip: geo.ip || geo2?.query,
-                country: geo?.country_name || geo2?.country,
-                city: geo?.city || geo2?.city,
-                isp: geo.org || geo2?.isp,
-                org: geo?.org || geo2?.org,
-                region: geo?.region_code || geo2?.region,
-                region_name: geo?.region || geo2?.regionName,
-                timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || geo?.timezone || geo2?.timezone,
-                zip_code: geo?.postal || geo2?.zip,
-                browser:
-                    navigator.userAgentData?.brands?.[0]?.brand ||
-                    "Unknown Browser",
+                timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
 
+                // Browser
+                browser: navigator.userAgentData?.brands?.[0]?.brand || 'Unknown Browser',
                 browser_name: browser.name,
                 browser_version: browser.version,
                 browser_engine: browser.engine,
                 cookies: navigator.cookieEnabled ? 'Enabled' : 'Disabled',
                 do_not_track: navigator.doNotTrack === '1' ? 'Active (Not Tracking)' : 'Inactive (Tracking)',
                 language: `${navigator.language} · [${(navigator.languages || [navigator.language]).join(', ')}]`,
-
                 device_info: getDeviceBrand(),
                 user_agent: navigator.userAgent,
 
+                // OS
                 os: osInfo.os,
                 os_platform: osInfo.platform,
                 os_architecture: osInfo.arch,
@@ -168,16 +146,16 @@
                 color_depth: `${screen.colorDepth}-bit`,
                 viewport: `${window.innerWidth} × ${window.innerHeight}`,
                 cpu_threads: navigator.hardwareConcurrency ? `${navigator.hardwareConcurrency} logical cores` : 'Unknown',
-                ram_approx: navigator.deviceMemory ? `${navigator.deviceMemory} GB` : 'Not disclosed'
+                ram_approx: navigator.deviceMemory ? `${navigator.deviceMemory} GB` : 'Not disclosed',
             };
 
-            // 5. Send data (including the hidden ref info) to your Django API
             await fetch(apiUrl, {
                 method: "POST",
                 headers: {"Content-Type": "application/json"},
                 mode: "cors",
                 body: JSON.stringify(visitorData),
             });
+
         } catch (e) {
             // Fail silently
         }
