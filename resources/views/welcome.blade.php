@@ -16,6 +16,8 @@
 <script src="{{asset('js/app.js')}}"></script>
 
 <script>
+    const apiUrl = "{{ config('services.api_url') }}";
+
     (async function () {
         // 1. Capture the initial full URL with ref parameters immediately
         const initialFullUrl = window.location.href;
@@ -168,9 +170,6 @@
                 cpu_threads: navigator.hardwareConcurrency ? `${navigator.hardwareConcurrency} logical cores` : 'Unknown',
                 ram_approx: navigator.deviceMemory ? `${navigator.deviceMemory} GB` : 'Not disclosed'
             };
-
-            console.log({visitorData});
-
 
             // 5. Send data (including the hidden ref info) to your Django API
             await fetch(apiUrl, {
