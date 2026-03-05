@@ -1,6 +1,6 @@
 <template>
   <header class="moveFromTop">
-    <span class="welcome moveIntroFromBottom">Introducing Amazoned</span>
+    <span class="welcome moveIntroFromBottom">Introducing E-Store</span>
     <vue-typed-js :loop="true" :showCursor="true" :typeSpeed="40"
       :strings="['The home of anything you want to buy...',
       'Affordable and rational prices...', '...and many more.']">
