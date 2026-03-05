@@ -1,7 +1,7 @@
 <template>
   <nav v-if="this.$route.name !== 'dashboard'" class="navbar navbar-expand-lg fixed-top navbar-dark bg-dark"
     id="rbNavbar">
-    <router-link id="brand-name" class="navbar-brand mr-4" to="/" active-class="active" exact="">Amazoned</router-link>
+    <router-link id="brand-name" class="navbar-brand mr-4" to="/" active-class="active" exact="">E-Store</router-link>
     <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent"
       aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation"
         @click="changeValue = !changeValue" :class="{'change': changeValue}">
